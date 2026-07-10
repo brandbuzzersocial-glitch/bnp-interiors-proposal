@@ -367,7 +367,7 @@
     }
   }
 </style>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.2/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 </head>
 <body>
 
@@ -1116,10 +1116,46 @@ let _cachedLogoBase64 = null;
 
 function generateProposalPDF() {
   const btn = document.getElementById('downloadPdfBtn');
+  
+  // Resolve jsPDF class dynamically
+  let jsPDFClass = null;
+  if (window.jspdf && window.jspdf.jsPDF) {
+    jsPDFClass = window.jspdf.jsPDF;
+  } else if (window.jsPDF) {
+    jsPDFClass = window.jsPDF;
+  }
+  
+  if (!jsPDFClass) {
+    btn.querySelector('span').textContent = 'Loading engine...';
+    
+    // Load script dynamically
+    const script = document.createElement('script');
+    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+    script.onload = () => {
+      btn.querySelector('span').textContent = 'Download Proposal PDF';
+      generateProposalPDF(); // Retry
+    };
+    script.onerror = () => {
+      // Try unpkg as fallback
+      const fallback = document.createElement('script');
+      fallback.src = 'https://unpkg.com/jspdf@2.5.1/dist/jspdf.umd.min.js';
+      fallback.onload = () => {
+        btn.querySelector('span').textContent = 'Download Proposal PDF';
+        generateProposalPDF(); // Retry
+      };
+      fallback.onerror = () => {
+        btn.querySelector('span').textContent = 'Download Proposal PDF';
+        alert('Could not load PDF library. Please check your internet connection.');
+      };
+      document.head.appendChild(fallback);
+    };
+    document.head.appendChild(script);
+    return;
+  }
+
   try {
     const logoData = _cachedLogoBase64;
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+    const doc = new jsPDFClass({ orientation: 'landscape', unit: 'mm', format: 'a4' });
     const W = 297, H = 210;
     const buzz = [255, 90, 31];
     const ink = [17, 17, 17];
