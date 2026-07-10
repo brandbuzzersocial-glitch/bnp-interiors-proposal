@@ -1097,29 +1097,27 @@ mobileMenu.querySelectorAll('a').forEach(a => {
 });
 
 /* ---- PDF Generation ---- */
+// Preload logo as base64 at page load so PDF generation is instant
+let _cachedLogoBase64 = null;
+(function preloadLogo() {
+  const img = new Image();
+  img.onload = function() {
+    try {
+      const c = document.createElement('canvas');
+      c.width = img.naturalWidth;
+      c.height = img.naturalHeight;
+      c.getContext('2d').drawImage(img, 0, 0);
+      _cachedLogoBase64 = c.toDataURL('image/png');
+    } catch(e) { _cachedLogoBase64 = null; }
+  };
+  img.onerror = function() { _cachedLogoBase64 = null; };
+  img.src = 'logo.png';
+})();
+
 function generateProposalPDF() {
   const btn = document.getElementById('downloadPdfBtn');
-  btn.classList.add('generating');
-  btn.querySelector('span').textContent = 'Generating PDF...';
-
-  // Load logo as base64
-  const logoImg = new Image();
-  logoImg.crossOrigin = 'anonymous';
-  logoImg.onload = function() {
-    const canvas = document.createElement('canvas');
-    canvas.width = logoImg.naturalWidth;
-    canvas.height = logoImg.naturalHeight;
-    const ctx = canvas.getContext('2d');
-    ctx.drawImage(logoImg, 0, 0);
-    const logoBase64 = canvas.toDataURL('image/png');
-    buildPDF(logoBase64);
-  };
-  logoImg.onerror = function() {
-    buildPDF(null);
-  };
-  logoImg.src = 'logo.png';
-
-  function buildPDF(logoData) {
+  try {
+    const logoData = _cachedLogoBase64;
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
     const W = 297, H = 210;
@@ -1585,9 +1583,9 @@ function generateProposalPDF() {
     // Save PDF
     doc.save('BNP_Interiors_Proposal_BrandBuzzer.pdf');
 
-    // Reset button
-    btn.classList.remove('generating');
-    btn.querySelector('span').textContent = 'Download Proposal PDF';
+  } catch(err) {
+    console.error('PDF generation error:', err);
+    alert('PDF download failed. Please try again.');
   }
 }
 </script>
