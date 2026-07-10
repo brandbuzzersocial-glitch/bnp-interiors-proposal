@@ -1162,6 +1162,8 @@ function generateProposalPDF() {
     const paper = [250, 250, 248];
     const grey = [111, 111, 111];
     const white = [255, 255, 255];
+    const lineLight = [227, 224, 217]; // Match --line (#e3e0d9)
+    const lineDark = [44, 44, 44]; // Match --line-dark (#2c2c2c)
 
     // Helper: draw branded footer bar on each slide
     function drawFooter(pageNum, totalPages) {
@@ -1172,11 +1174,11 @@ function generateProposalPDF() {
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(7);
       doc.setTextColor(150, 150, 150);
-      doc.text('Brand Buzzer  ●  Website Proposal for BNP Interiors  ●  Confidential', 14, H - 5.5);
+      doc.text('Brand Buzzer  |  Website Proposal for BNP Interiors  |  Confidential', 14, H - 5.5);
       doc.text(pageNum + ' / ' + totalPages, W - 14, H - 5.5, { align: 'right' });
     }
 
-    // Helper: draw accent corner marks
+    // Helper: draw accent corner marks matching the site's tech-accent styling
     function drawCornerAccents() {
       doc.setDrawColor(...buzz);
       doc.setLineWidth(0.8);
@@ -1214,7 +1216,7 @@ function generateProposalPDF() {
       try { doc.addImage(logoData, 'PNG', (W - 50) / 2, 38, 50, 42); } catch(e) {}
     }
 
-    // Horizontal divider line
+    // Horizontal divider line (orange, like the landing page)
     doc.setDrawColor(...buzz);
     doc.setLineWidth(0.6);
     doc.line(W / 2 - 40, 90, W / 2 + 40, 90);
@@ -1234,7 +1236,8 @@ function generateProposalPDF() {
     // Prepared by
     doc.setFontSize(9);
     doc.setTextColor(150, 150, 150);
-    doc.text('Prepared by Brand Buzzer  ●  ' + new Date().toLocaleDateString('en-IN', { year: 'numeric', month: 'long', day: 'numeric' }), W / 2, 136, { align: 'center' });
+    const dateStr = new Date().toLocaleDateString('en-IN', { year: 'numeric', month: 'long', day: 'numeric' });
+    doc.text('Prepared by Brand Buzzer  |  ' + dateStr, W / 2, 136, { align: 'center' });
 
     // Tagline at bottom
     doc.setFontSize(8);
@@ -1250,7 +1253,7 @@ function generateProposalPDF() {
     doc.setFillColor(...paper);
     doc.rect(0, 0, W, H, 'F');
 
-    // Section accent bar
+    // Section accent bar (orange, left side)
     doc.setFillColor(...buzz);
     doc.rect(0, 0, 6, H, 'F');
 
@@ -1265,12 +1268,12 @@ function generateProposalPDF() {
     doc.setTextColor(...ink);
     doc.text('SCOPE & DELIVERABLES', 20, 36);
 
-    // Divider
-    doc.setDrawColor(200, 200, 200);
-    doc.setLineWidth(0.3);
+    // Divider matching --line color (#e3e0d9)
+    doc.setDrawColor(...lineLight);
+    doc.setLineWidth(0.4);
     doc.line(20, 42, W - 20, 42);
 
-    // 4 scope cards
+    // 4 scope cards (Styled to match website cards: sharp borders, clean line grids)
     const scopeCards = [
       { tag: 'SCOPE', text: 'A complete custom frontend covering every page and section of the website.' },
       { tag: 'ANIMATION', text: '2-3 signature custom GSAP animation moments with 3-4 animations included in total.' },
@@ -1286,21 +1289,23 @@ function generateProposalPDF() {
       const x = 20 + col * (cardW + 10);
       const y = 50 + row * (cardH + 8);
 
-      // Card background
-      doc.setFillColor(241, 239, 234);
-      doc.roundedRect(x, y, cardW, cardH, 2, 2, 'F');
+      // Card body & border (sharp corners matching website's 1px grid layout)
+      doc.setFillColor(...paper);
+      doc.setDrawColor(...lineLight);
+      doc.setLineWidth(0.4);
+      doc.rect(x, y, cardW, cardH, 'FD');
 
-      // Accent bar
+      // Small orange accent stripe on the card's left edge
       doc.setFillColor(...buzz);
       doc.rect(x, y, 3, cardH, 'F');
 
-      // Tag
+      // Tag (monospace-like uppercase label)
       doc.setFont('helvetica', 'bold');
-      doc.setFontSize(8);
+      doc.setFontSize(8.5);
       doc.setTextColor(...buzz);
       doc.text(card.tag, x + 10, y + 13);
 
-      // Text
+      // Text content
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(10);
       doc.setTextColor(...ink);
@@ -1308,7 +1313,7 @@ function generateProposalPDF() {
       doc.text(lines, x + 10, y + 23);
     });
 
-    // Additional info below cards
+    // Additional info below cards (split columns style)
     const infoY = 170;
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(8);
@@ -1331,7 +1336,7 @@ function generateProposalPDF() {
     drawFooter(2, totalPages);
 
     // ========================
-    // SLIDE 3: TIMELINE, SUPPORT & OPTIMIZATION
+    // SLIDE 3: TIMELINE & TERMS
     // ========================
     doc.addPage();
     doc.setFillColor(...paper);
@@ -1350,11 +1355,11 @@ function generateProposalPDF() {
     doc.setTextColor(...ink);
     doc.text('TIMELINE & TERMS', 20, 36);
 
-    doc.setDrawColor(200, 200, 200);
-    doc.setLineWidth(0.3);
+    doc.setDrawColor(...lineLight);
+    doc.setLineWidth(0.4);
     doc.line(20, 42, W - 20, 42);
 
-    // Info blocks
+    // 6 term blocks styled as grid elements
     const termBlocks = [
       { label: 'TIMELINE', text: 'The estimated timeline for this project is 25 to 30 days from the kickoff date, contingent on prompt feedback and asset delivery.' },
       { label: 'SUPPORT', text: 'Upon complete delivery, we offer a 15-day support window. During this period, we will fix any technical bugs. No new updates or content uploads are included in this window.' },
@@ -1368,24 +1373,27 @@ function generateProposalPDF() {
       const col = i % 2;
       const row = Math.floor(i / 2);
       const bx = 20 + col * ((W - 50) / 2 + 10);
-      const by = 52 + row * 40;
+      const by = 50 + row * 38;
 
-      doc.setFillColor(241, 239, 234);
-      doc.roundedRect(bx, by, (W - 50) / 2, 34, 2, 2, 'F');
+      // Sharp grid card matching website design
+      doc.setFillColor(...paper);
+      doc.setDrawColor(...lineLight);
+      doc.setLineWidth(0.4);
+      doc.rect(bx, by, (W - 50) / 2, 32, 'FD');
 
       doc.setFillColor(...buzz);
-      doc.rect(bx, by, 3, 34, 'F');
+      doc.rect(bx, by, 3, 32, 'F');
 
       doc.setFont('helvetica', 'bold');
-      doc.setFontSize(7.5);
+      doc.setFontSize(8);
       doc.setTextColor(...buzz);
-      doc.text(block.label, bx + 10, by + 10);
+      doc.text(block.label, bx + 10, by + 9);
 
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(8.5);
       doc.setTextColor(50, 50, 50);
       const blines = doc.splitTextToSize(block.text, (W - 50) / 2 - 18);
-      doc.text(blines, bx + 10, by + 18);
+      doc.text(blines, bx + 10, by + 16);
     });
 
     drawFooter(3, totalPages);
@@ -1410,15 +1418,15 @@ function generateProposalPDF() {
     doc.setTextColor(...ink);
     doc.text('PAYMENT & REQUIREMENTS', 20, 36);
 
-    doc.setDrawColor(200, 200, 200);
-    doc.setLineWidth(0.3);
+    doc.setDrawColor(...lineLight);
+    doc.setLineWidth(0.4);
     doc.line(20, 42, W - 20, 42);
 
     // Payment structure
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(12);
     doc.setTextColor(...ink);
-    doc.text('Payment Structure', 20, 56);
+    doc.text('Payment Structure', 20, 54);
 
     const payments = [
       { pct: '50%', label: 'Advance Payment', desc: 'Required at kickoff to initiate the design and strategy phase.' },
@@ -1427,26 +1435,26 @@ function generateProposalPDF() {
     ];
 
     payments.forEach((p, i) => {
-      const py = 64 + i * 24;
+      const py = 62 + i * 24;
 
-      // Percentage circle
+      // Sharp rectangular percentage badge (matching website design elements)
       doc.setFillColor(...buzz);
-      doc.circle(30, py + 6, 8, 'F');
+      doc.rect(20, py, 14, 8, 'F');
       doc.setFont('helvetica', 'bold');
-      doc.setFontSize(10);
+      doc.setFontSize(8.5);
       doc.setTextColor(...white);
-      doc.text(p.pct, 30, py + 8, { align: 'center' });
+      doc.text(p.pct, 27, py + 6, { align: 'center' });
 
       // Label and description
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(11);
       doc.setTextColor(...ink);
-      doc.text(p.label, 44, py + 4);
+      doc.text(p.label, 42, py + 6);
 
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(9);
       doc.setTextColor(...grey);
-      doc.text(p.desc, 44, py + 12);
+      doc.text(p.desc, 42, py + 14);
     });
 
     // Requirements section
@@ -1466,12 +1474,13 @@ function generateProposalPDF() {
 
     requirements.forEach((req, i) => {
       const ry = reqY + 8 + i * 9;
+      // Sharp square bullet points
       doc.setFillColor(...buzz);
-      doc.rect(24, ry - 2, 3, 3, 'F');
+      doc.rect(20, ry - 2, 2.5, 2.5, 'F');
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(8.5);
       doc.setTextColor(50, 50, 50);
-      doc.text(req, 32, ry + 1);
+      doc.text(req, 28, ry);
     });
 
     drawFooter(4, totalPages);
@@ -1499,16 +1508,18 @@ function generateProposalPDF() {
     doc.setTextColor(...paper);
     doc.text('INVESTMENT', W / 2, 42, { align: 'center' });
 
-    // Divider
+    // Divider matching dark sections
     doc.setDrawColor(...buzz);
     doc.setLineWidth(0.6);
     doc.line(W / 2 - 30, 48, W / 2 + 30, 48);
 
-    // Price card 1 - Frontend
+    // Price card 1 - Frontend (Sharp cards matching website's dark UI style)
     const card1X = W / 2 - 120;
     const card1Y = 60;
-    doc.setFillColor(30, 30, 30);
-    doc.roundedRect(card1X, card1Y, 110, 90, 3, 3, 'F');
+    doc.setFillColor(24, 24, 24);
+    doc.setDrawColor(...lineDark);
+    doc.setLineWidth(0.4);
+    doc.rect(card1X, card1Y, 110, 90, 'FD');
 
     // Card accent top
     doc.setFillColor(...buzz);
@@ -1527,15 +1538,17 @@ function generateProposalPDF() {
     doc.text('- 1,35,000', card1X + 55, card1Y + 52, { align: 'center' });
 
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(8);
+    doc.setFontSize(8.5);
     doc.setTextColor(150, 150, 150);
     const flines = doc.splitTextToSize('Complete build covering every page and section, without backend / CMS', 90);
     doc.text(flines, card1X + 55, card1Y + 66, { align: 'center' });
 
     // Price card 2 - Backend
     const card2X = W / 2 + 10;
-    doc.setFillColor(30, 30, 30);
-    doc.roundedRect(card2X, card1Y, 110, 90, 3, 3, 'F');
+    doc.setFillColor(24, 24, 24);
+    doc.setDrawColor(...lineDark);
+    doc.setLineWidth(0.4);
+    doc.rect(card2X, card1Y, 110, 90, 'FD');
 
     doc.setFillColor(...buzz);
     doc.rect(card2X, card1Y, 110, 3, 'F');
@@ -1551,10 +1564,10 @@ function generateProposalPDF() {
     doc.text('Rs.25,000', card2X + 55, card1Y + 42, { align: 'center' });
 
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(8);
+    doc.setFontSize(8.5);
     doc.setTextColor(150, 150, 150);
     const blines2 = doc.splitTextToSize('Optional add-on to manage content independently, includes SEO indexing by default', 90);
-    doc.text(blines2, card2X + 55, card1Y + 60, { align: 'center' });
+    doc.text(blines2, card2X + 55, card1Y + 66, { align: 'center' });
 
     // Note
     doc.setFont('helvetica', 'normal');
