@@ -1498,11 +1498,6 @@ function generateProposalPDF() {
 
     drawCornerAccents();
 
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(9);
-    doc.setTextColor(...buzz);
-    doc.text('17. FINAL PROPOSAL', W / 2, 24, { align: 'center' });
-
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(30);
     doc.setTextColor(...paper);
@@ -1566,6 +1561,22 @@ function generateProposalPDF() {
     doc.setTextColor(150, 150, 150);
     const blines2 = doc.splitTextToSize('Optional add-on to manage content independently, includes SEO indexing by default', 90);
     doc.text(blines2, card2X + 55, card1Y + 66, { align: 'center' });
+
+    // For detailed proposal click here link
+    const linkText = 'for detailed proposal click here';
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(10);
+    doc.setTextColor(...buzz);
+    doc.text(linkText, W / 2, 164, { align: 'center' });
+
+    // Add underline to the link text
+    const linkWidth = doc.getTextWidth(linkText);
+    doc.setDrawColor(...buzz);
+    doc.setLineWidth(0.3);
+    doc.line(W / 2 - linkWidth / 2, 165.5, W / 2 + linkWidth / 2, 165.5);
+
+    // Create the clickable area overlay
+    doc.link(W / 2 - linkWidth / 2, 158, linkWidth, 9, { url: 'https://bnp-interiors-proposal.vercel.app/' });
 
     // Note
     doc.setFont('helvetica', 'normal');
