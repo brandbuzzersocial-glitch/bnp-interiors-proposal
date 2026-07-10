@@ -260,6 +260,40 @@
   .stat p{font-family:'IBM Plex Mono',monospace; font-size:12px; color:var(--grey); margin-top:8px; text-transform:uppercase;}
   @media (max-width:760px){ .stat-grid{grid-template-columns:repeat(2,1fr);} }
 
+  /* -------- download PDF button -------- */
+  .pdf-download-wrap{
+    display:flex; justify-content:center; margin-top:56px;
+  }
+  .btn-pdf{
+    display:inline-flex; align-items:center; gap:12px;
+    background:var(--ink); color:var(--paper);
+    padding:18px 38px; font-family:'IBM Plex Mono',monospace;
+    font-size:15px; font-weight:600; text-decoration:none; letter-spacing:0.04em;
+    border:2px solid var(--ink); cursor:pointer;
+    transition:all .25s cubic-bezier(0.16, 1, 0.3, 1);
+    position:relative; overflow:hidden;
+    text-transform:uppercase;
+  }
+  .btn-pdf::before{
+    content:''; position:absolute; top:0; left:-100%; width:100%; height:100%;
+    background:var(--buzz); transition:left .35s cubic-bezier(0.16, 1, 0.3, 1);
+    z-index:0;
+  }
+  .btn-pdf:hover::before{ left:0; }
+  .btn-pdf:hover{ border-color:var(--buzz); color:var(--ink); }
+  .btn-pdf span, .btn-pdf svg{ position:relative; z-index:1; }
+  .btn-pdf svg{ width:20px; height:20px; fill:currentColor; transition:transform .2s ease; }
+  .btn-pdf:hover svg{ transform:translateY(2px); }
+  .btn-pdf:active{ transform:scale(0.97); }
+  .btn-pdf.generating{ pointer-events:none; opacity:0.7; }
+  .btn-pdf.generating::after{
+    content:''; position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
+    width:20px; height:20px; border:2px solid transparent;
+    border-top-color:var(--paper); border-radius:50%;
+    animation:spin .6s linear infinite; z-index:2;
+  }
+  @keyframes spin{ to{ transform:translate(-50%,-50%) rotate(360deg); } }
+
   /* -------- CTA -------- */
   .cta{background:var(--buzz); color:var(--ink); padding:80px 0;}
   .cta h2{font-size:clamp(30px, 5vw, 52px); margin-bottom:18px; max-width:720px;}
@@ -333,6 +367,7 @@
     }
   }
 </style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.2/jspdf.umd.min.js"></script>
 </head>
 <body>
 
@@ -718,6 +753,13 @@
         <p>Backend / CMS: optional add-on, billed separately</p>
       </div>
     </div>
+
+    <div class="pdf-download-wrap reveal">
+      <button class="btn-pdf" id="downloadPdfBtn" onclick="generateProposalPDF()">
+        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 16l-5-5h3V4h4v7h3l-5 5zm-7 4h14v-2H5v2z"/></svg>
+        <span>Download Proposal PDF</span>
+      </button>
+    </div>
   </div>
 </section>
 
@@ -1053,6 +1095,501 @@ mobileMenu.querySelectorAll('a').forEach(a => {
     document.body.style.overflow = '';
   };
 });
+
+/* ---- PDF Generation ---- */
+function generateProposalPDF() {
+  const btn = document.getElementById('downloadPdfBtn');
+  btn.classList.add('generating');
+  btn.querySelector('span').textContent = 'Generating PDF...';
+
+  // Load logo as base64
+  const logoImg = new Image();
+  logoImg.crossOrigin = 'anonymous';
+  logoImg.onload = function() {
+    const canvas = document.createElement('canvas');
+    canvas.width = logoImg.naturalWidth;
+    canvas.height = logoImg.naturalHeight;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(logoImg, 0, 0);
+    const logoBase64 = canvas.toDataURL('image/png');
+    buildPDF(logoBase64);
+  };
+  logoImg.onerror = function() {
+    buildPDF(null);
+  };
+  logoImg.src = 'logo.png';
+
+  function buildPDF(logoData) {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+    const W = 297, H = 210;
+    const buzz = [255, 90, 31];
+    const ink = [17, 17, 17];
+    const paper = [250, 250, 248];
+    const grey = [111, 111, 111];
+    const white = [255, 255, 255];
+
+    // Helper: draw branded footer bar on each slide
+    function drawFooter(pageNum, totalPages) {
+      doc.setFillColor(...ink);
+      doc.rect(0, H - 14, W, 14, 'F');
+      doc.setFillColor(...buzz);
+      doc.rect(0, H - 14, W, 1.2, 'F');
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(7);
+      doc.setTextColor(150, 150, 150);
+      doc.text('Brand Buzzer  ●  Website Proposal for BNP Interiors  ●  Confidential', 14, H - 5.5);
+      doc.text(pageNum + ' / ' + totalPages, W - 14, H - 5.5, { align: 'right' });
+    }
+
+    // Helper: draw accent corner marks
+    function drawCornerAccents() {
+      doc.setDrawColor(...buzz);
+      doc.setLineWidth(0.8);
+      // top-left
+      doc.line(10, 10, 22, 10);
+      doc.line(10, 10, 10, 22);
+      // top-right
+      doc.line(W - 10, 10, W - 22, 10);
+      doc.line(W - 10, 10, W - 10, 22);
+      // bottom-left
+      doc.line(10, H - 22, 10, H - 18);
+      doc.line(10, H - 18, 22, H - 18);
+      // bottom-right
+      doc.line(W - 10, H - 22, W - 10, H - 18);
+      doc.line(W - 10, H - 18, W - 22, H - 18);
+    }
+
+    const totalPages = 6;
+
+    // ========================
+    // SLIDE 1: COVER
+    // ========================
+    doc.setFillColor(...ink);
+    doc.rect(0, 0, W, H, 'F');
+
+    // Orange accent stripe at top
+    doc.setFillColor(...buzz);
+    doc.rect(0, 0, W, 4, 'F');
+
+    // Corner accents
+    drawCornerAccents();
+
+    // Logo
+    if (logoData) {
+      try { doc.addImage(logoData, 'PNG', (W - 50) / 2, 38, 50, 42); } catch(e) {}
+    }
+
+    // Horizontal divider line
+    doc.setDrawColor(...buzz);
+    doc.setLineWidth(0.6);
+    doc.line(W / 2 - 40, 90, W / 2 + 40, 90);
+
+    // "WEBSITE PROPOSAL"
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(32);
+    doc.setTextColor(...paper);
+    doc.text('WEBSITE PROPOSAL', W / 2, 106, { align: 'center' });
+
+    // "for BNP Interiors"
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(16);
+    doc.setTextColor(...buzz);
+    doc.text('for BNP Interiors', W / 2, 117, { align: 'center' });
+
+    // Prepared by
+    doc.setFontSize(9);
+    doc.setTextColor(150, 150, 150);
+    doc.text('Prepared by Brand Buzzer  ●  ' + new Date().toLocaleDateString('en-IN', { year: 'numeric', month: 'long', day: 'numeric' }), W / 2, 136, { align: 'center' });
+
+    // Tagline at bottom
+    doc.setFontSize(8);
+    doc.setTextColor(120, 120, 120);
+    doc.text('Strategy  /  UX Engineering  /  AI-First Development  /  Conversion Design  /  SEO Architecture', W / 2, 155, { align: 'center' });
+
+    drawFooter(1, totalPages);
+
+    // ========================
+    // SLIDE 2: SCOPE & DELIVERABLES
+    // ========================
+    doc.addPage();
+    doc.setFillColor(...paper);
+    doc.rect(0, 0, W, H, 'F');
+
+    // Section accent bar
+    doc.setFillColor(...buzz);
+    doc.rect(0, 0, 6, H, 'F');
+
+    // Section number + title
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    doc.setTextColor(...buzz);
+    doc.text('17. FINAL PROPOSAL', 20, 22);
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(26);
+    doc.setTextColor(...ink);
+    doc.text('SCOPE & DELIVERABLES', 20, 36);
+
+    // Divider
+    doc.setDrawColor(200, 200, 200);
+    doc.setLineWidth(0.3);
+    doc.line(20, 42, W - 20, 42);
+
+    // 4 scope cards
+    const scopeCards = [
+      { tag: 'SCOPE', text: 'A complete custom frontend covering every page and section of the website.' },
+      { tag: 'ANIMATION', text: '2-3 signature custom GSAP animation moments with 3-4 animations included in total.' },
+      { tag: 'MEDIA', text: '2-3 media edits included where needed, such as the hero banner video or imagery.' },
+      { tag: 'SEO', text: 'Basic on-page SEO setup and search indexing configured by default, at no extra cost.' }
+    ];
+
+    const cardW = (W - 60) / 2;
+    const cardH = 50;
+    scopeCards.forEach((card, i) => {
+      const col = i % 2;
+      const row = Math.floor(i / 2);
+      const x = 20 + col * (cardW + 10);
+      const y = 50 + row * (cardH + 8);
+
+      // Card background
+      doc.setFillColor(241, 239, 234);
+      doc.roundedRect(x, y, cardW, cardH, 2, 2, 'F');
+
+      // Accent bar
+      doc.setFillColor(...buzz);
+      doc.rect(x, y, 3, cardH, 'F');
+
+      // Tag
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(8);
+      doc.setTextColor(...buzz);
+      doc.text(card.tag, x + 10, y + 13);
+
+      // Text
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(10);
+      doc.setTextColor(...ink);
+      const lines = doc.splitTextToSize(card.text, cardW - 18);
+      doc.text(lines, x + 10, y + 23);
+    });
+
+    // Additional info below cards
+    const infoY = 170;
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(8);
+    doc.setTextColor(...buzz);
+    doc.text('STRUCTURE & SCOPE', 20, infoY);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    doc.setTextColor(...grey);
+    doc.text('The final sitemap and site structure will be finalized directly with you, over WhatsApp or email.', 75, infoY);
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(8);
+    doc.setTextColor(...buzz);
+    doc.text('FLOATING CHAT', 20, infoY + 10);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    doc.setTextColor(...grey);
+    doc.text('A floating chat button (e.g., WhatsApp Business or Live Chat widget) can be included on all pages.', 75, infoY + 10);
+
+    drawFooter(2, totalPages);
+
+    // ========================
+    // SLIDE 3: TIMELINE, SUPPORT & OPTIMIZATION
+    // ========================
+    doc.addPage();
+    doc.setFillColor(...paper);
+    doc.rect(0, 0, W, H, 'F');
+
+    doc.setFillColor(...buzz);
+    doc.rect(0, 0, 6, H, 'F');
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    doc.setTextColor(...buzz);
+    doc.text('17. FINAL PROPOSAL', 20, 22);
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(26);
+    doc.setTextColor(...ink);
+    doc.text('TIMELINE & TERMS', 20, 36);
+
+    doc.setDrawColor(200, 200, 200);
+    doc.setLineWidth(0.3);
+    doc.line(20, 42, W - 20, 42);
+
+    // Info blocks
+    const termBlocks = [
+      { label: 'TIMELINE', text: 'The estimated timeline for this project is 25 to 30 days from the kickoff date, contingent on prompt feedback and asset delivery.' },
+      { label: 'SUPPORT', text: 'Upon complete delivery, we offer a 15-day support window. During this period, we will fix any technical bugs. No new updates or content uploads are included in this window.' },
+      { label: 'OPTIMIZATION', text: 'We guarantee complete cross-device and cross-browser compatibility. The website will be fully responsive and optimized for all devices and major browsers. Zero overlaps, alignment issues, or functional errors.' },
+      { label: 'COLLABORATION', text: 'To deliver within the 25-30 day schedule, the BNP Interiors team must be prompt with content and feedback. We will require a designated contact person from your team.' },
+      { label: 'BACKEND', text: 'The backend / CMS is optional. The frontend price covers the complete website on its own; the backend is a separate add-on if you would like to manage content yourself.' },
+      { label: 'BILLED SEPARATELY', text: 'Any third-party service cost is billed directly to you. Hosting and domain charges are borne by the client.' }
+    ];
+
+    termBlocks.forEach((block, i) => {
+      const col = i % 2;
+      const row = Math.floor(i / 2);
+      const bx = 20 + col * ((W - 50) / 2 + 10);
+      const by = 52 + row * 40;
+
+      doc.setFillColor(241, 239, 234);
+      doc.roundedRect(bx, by, (W - 50) / 2, 34, 2, 2, 'F');
+
+      doc.setFillColor(...buzz);
+      doc.rect(bx, by, 3, 34, 'F');
+
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(7.5);
+      doc.setTextColor(...buzz);
+      doc.text(block.label, bx + 10, by + 10);
+
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(8.5);
+      doc.setTextColor(50, 50, 50);
+      const blines = doc.splitTextToSize(block.text, (W - 50) / 2 - 18);
+      doc.text(blines, bx + 10, by + 18);
+    });
+
+    drawFooter(3, totalPages);
+
+    // ========================
+    // SLIDE 4: PAYMENT & REQUIREMENTS
+    // ========================
+    doc.addPage();
+    doc.setFillColor(...paper);
+    doc.rect(0, 0, W, H, 'F');
+
+    doc.setFillColor(...buzz);
+    doc.rect(0, 0, 6, H, 'F');
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    doc.setTextColor(...buzz);
+    doc.text('17. FINAL PROPOSAL', 20, 22);
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(26);
+    doc.setTextColor(...ink);
+    doc.text('PAYMENT & REQUIREMENTS', 20, 36);
+
+    doc.setDrawColor(200, 200, 200);
+    doc.setLineWidth(0.3);
+    doc.line(20, 42, W - 20, 42);
+
+    // Payment structure
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(12);
+    doc.setTextColor(...ink);
+    doc.text('Payment Structure', 20, 56);
+
+    const payments = [
+      { pct: '50%', label: 'Advance Payment', desc: 'Required at kickoff to initiate the design and strategy phase.' },
+      { pct: '25%', label: 'Midway Payment', desc: 'Due upon completion and approval of the design and initial layouts.' },
+      { pct: '25%', label: 'Final Payment', desc: 'Due after complete website deployment and testing. Full code handover and hosting control transferred.' }
+    ];
+
+    payments.forEach((p, i) => {
+      const py = 64 + i * 24;
+
+      // Percentage circle
+      doc.setFillColor(...buzz);
+      doc.circle(30, py + 6, 8, 'F');
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(10);
+      doc.setTextColor(...white);
+      doc.text(p.pct, 30, py + 8, { align: 'center' });
+
+      // Label and description
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(11);
+      doc.setTextColor(...ink);
+      doc.text(p.label, 44, py + 4);
+
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(9);
+      doc.setTextColor(...grey);
+      doc.text(p.desc, 44, py + 12);
+    });
+
+    // Requirements section
+    const reqY = 142;
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(12);
+    doc.setTextColor(...ink);
+    doc.text('Requirements From Your Team', 20, reqY);
+
+    const requirements = [
+      'Brand Identity: High-resolution logo files and brand guidelines (colors, fonts).',
+      'Media Assets: High-resolution images and videos of projects, organized by name.',
+      'Copywriting: Final or draft copy for About Us, Services, Team, and Projects pages.',
+      'Technical Details: Domain registrar access, hosting panel, SMTP credentials.',
+      'Integrations: WhatsApp business number, social media profiles, CRM credentials.'
+    ];
+
+    requirements.forEach((req, i) => {
+      const ry = reqY + 8 + i * 9;
+      doc.setFillColor(...buzz);
+      doc.rect(24, ry - 2, 3, 3, 'F');
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(8.5);
+      doc.setTextColor(50, 50, 50);
+      doc.text(req, 32, ry + 1);
+    });
+
+    drawFooter(4, totalPages);
+
+    // ========================
+    // SLIDE 5: PRICING
+    // ========================
+    doc.addPage();
+    doc.setFillColor(...ink);
+    doc.rect(0, 0, W, H, 'F');
+
+    // Top accent bar
+    doc.setFillColor(...buzz);
+    doc.rect(0, 0, W, 4, 'F');
+
+    drawCornerAccents();
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    doc.setTextColor(...buzz);
+    doc.text('17. FINAL PROPOSAL', W / 2, 24, { align: 'center' });
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(30);
+    doc.setTextColor(...paper);
+    doc.text('INVESTMENT', W / 2, 42, { align: 'center' });
+
+    // Divider
+    doc.setDrawColor(...buzz);
+    doc.setLineWidth(0.6);
+    doc.line(W / 2 - 30, 48, W / 2 + 30, 48);
+
+    // Price card 1 - Frontend
+    const card1X = W / 2 - 120;
+    const card1Y = 60;
+    doc.setFillColor(30, 30, 30);
+    doc.roundedRect(card1X, card1Y, 110, 90, 3, 3, 'F');
+
+    // Card accent top
+    doc.setFillColor(...buzz);
+    doc.rect(card1X, card1Y, 110, 3, 'F');
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(9);
+    doc.setTextColor(...buzz);
+    doc.text('FRONTEND DEVELOPMENT', card1X + 55, card1Y + 18, { align: 'center' });
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(22);
+    doc.setTextColor(...paper);
+    doc.text('Rs.1,25,000', card1X + 55, card1Y + 38, { align: 'center' });
+    doc.setFontSize(14);
+    doc.text('- 1,35,000', card1X + 55, card1Y + 52, { align: 'center' });
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8);
+    doc.setTextColor(150, 150, 150);
+    const flines = doc.splitTextToSize('Complete build covering every page and section, without backend / CMS', 90);
+    doc.text(flines, card1X + 55, card1Y + 66, { align: 'center' });
+
+    // Price card 2 - Backend
+    const card2X = W / 2 + 10;
+    doc.setFillColor(30, 30, 30);
+    doc.roundedRect(card2X, card1Y, 110, 90, 3, 3, 'F');
+
+    doc.setFillColor(...buzz);
+    doc.rect(card2X, card1Y, 110, 3, 'F');
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(9);
+    doc.setTextColor(...buzz);
+    doc.text('BACKEND / CMS', card2X + 55, card1Y + 18, { align: 'center' });
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(26);
+    doc.setTextColor(...paper);
+    doc.text('Rs.25,000', card2X + 55, card1Y + 42, { align: 'center' });
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8);
+    doc.setTextColor(150, 150, 150);
+    const blines2 = doc.splitTextToSize('Optional add-on to manage content independently, includes SEO indexing by default', 90);
+    doc.text(blines2, card2X + 55, card1Y + 60, { align: 'center' });
+
+    // Note
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8);
+    doc.setTextColor(100, 100, 100);
+    doc.text('* All prices are in INR. Third-party services, hosting, and domain charges are billed separately.', W / 2, H - 30, { align: 'center' });
+
+    drawFooter(5, totalPages);
+
+    // ========================
+    // SLIDE 6: CONTACT
+    // ========================
+    doc.addPage();
+    doc.setFillColor(...ink);
+    doc.rect(0, 0, W, H, 'F');
+
+    // Full-width accent bar
+    doc.setFillColor(...buzz);
+    doc.rect(0, 0, W, 4, 'F');
+
+    drawCornerAccents();
+
+    // Logo on contact page
+    if (logoData) {
+      try { doc.addImage(logoData, 'PNG', (W - 40) / 2, 30, 40, 34); } catch(e) {}
+    }
+
+    // Main heading
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(28);
+    doc.setTextColor(...buzz);
+    doc.text("LET'S BUILD SOMETHING", W / 2, 84, { align: 'center' });
+    doc.text('EXCEPTIONAL.', W / 2, 96, { align: 'center' });
+
+    // Divider
+    doc.setDrawColor(...buzz);
+    doc.setLineWidth(0.6);
+    doc.line(W / 2 - 30, 106, W / 2 + 30, 106);
+
+    // Contact info
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(12);
+    doc.setTextColor(...paper);
+    doc.text('brandbuzersocial@gmail.com', W / 2, 122, { align: 'center' });
+
+    doc.setFontSize(12);
+    doc.text('+91 7878584866', W / 2, 134, { align: 'center' });
+
+    // Tagline
+    doc.setFontSize(9);
+    doc.setTextColor(120, 120, 120);
+    doc.text('Fast, scalable, visually refined, and built for long-term growth.', W / 2, 154, { align: 'center' });
+
+    // Footer note
+    doc.setFontSize(7);
+    doc.setTextColor(80, 80, 80);
+    doc.text('This document is confidential and intended solely for BNP Interiors.', W / 2, 170, { align: 'center' });
+    doc.text('© ' + new Date().getFullYear() + ' Brand Buzzer. All rights reserved.', W / 2, 177, { align: 'center' });
+
+    drawFooter(6, totalPages);
+
+    // Save PDF
+    doc.save('BNP_Interiors_Proposal_BrandBuzzer.pdf');
+
+    // Reset button
+    btn.classList.remove('generating');
+    btn.querySelector('span').textContent = 'Download Proposal PDF';
+  }
+}
 </script>
 </body>
 </html>
