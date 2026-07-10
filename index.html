@@ -1585,7 +1585,7 @@ function generateProposalPDF() {
 
   } catch(err) {
     console.error('PDF generation error:', err);
-    alert('PDF download failed. Please try again.');
+    alert('PDF download failed: ' + err.message);
   }
 }
 </script>
